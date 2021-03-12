@@ -24,14 +24,15 @@ namespace dockerapi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public object Get()
+        public IQueryable Get()
         {
-            return _context.Usuario.Select((x) => new
-            {
-                id = x.id,
-                nome = x.nome,
-                email = x.email
-            }).ToList();
+            return (from u in _context.Usuario
+                    select new
+                    {
+                        u.id,
+                        u.nome,
+                        u.email
+                    });
         }
 
         /// <summary>
@@ -40,16 +41,16 @@ namespace dockerapi.Controllers
         /// <param name="id">ID do usuário</param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public object GetById(long id)
+        public IQueryable GetById(long id)
         {
-            var usuarioPesquisado = _context.Usuario.Where(y => y.id == id);
-
-            return usuarioPesquisado.Select((x) => new
-            {
-                id = x.id,
-                nome = x.nome,
-                email = x.email
-            });
+            return (from u in _context.Usuario
+                    where u.id == id
+                    select new
+                    {
+                        u.id,
+                        u.nome,
+                        u.email
+                    });
         }
 
         /// <summary>

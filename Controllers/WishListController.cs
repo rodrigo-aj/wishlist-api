@@ -1,8 +1,11 @@
 ﻿using dockerapi.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,58 +19,58 @@ namespace dockerapi.Controllers
     {
         private readonly ApiDbContext _context;
 
-        public WishListController(ApiDbContext context)
+        private static IHostingEnvironment _environment;
+
+        public WishListController(ApiDbContext context, IHostingEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         /// <summary>
-        /// Retorna todas as wishList cadastradas
+        /// 
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public object Get()
+        public IQueryable Get()
         {
-            var query = (from n in _context.WishList
-                         join c in _context.Usuario on n.usuario.id equals c.id
+            return (from n in _context.WishList
+                    join c in _context.Usuario on n.usuario.id equals c.id
 
+                    select new
+                    {
+                        n.id,
+                        n.tituloProduto,
+                        n.descProduto,
+                        n.comprouOuGanhouItem,
+                        c.nome,
+                        c.email
+                    });
 
-                         select new
-                         {
-                             n.id,
-                             n.tituloProduto,
-                             n.descProduto,
-                             n.comprouOuGanhouItem,
-                             c.nome,
-                             c.email
-                         });
-
-            return query.ToList();
         }
 
         /// <summary>
-        /// Retorna uma wishList a partir do ID
+        /// Retorna um item a partir do ID
         /// </summary>
-        /// <param name="id">ID da wishList</param>
+        /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public object GetById(long id)
+        public IQueryable GetById(long id)
         {
-            var query = (from n in _context.WishList
-                         join c in _context.Usuario on n.usuario.id equals c.id
-                         where n.id == id
+            return (from n in _context.WishList
+                    join c in _context.Usuario on n.usuario.id equals c.id
+                    where n.id == id
 
-                         select new
-                         {
-                             n.id,
-                             n.tituloProduto,
-                             n.descProduto,
-                             n.comprouOuGanhouItem,
-                             c.nome,
-                             c.email
-                         });
+                    select new
+                    {
+                        n.id,
+                        n.tituloProduto,
+                        n.descProduto,
+                        n.comprouOuGanhouItem,
+                        c.nome,
+                        c.email
+                    });
 
-            return query;
         }
 
         /// <summary>
@@ -130,22 +133,53 @@ namespace dockerapi.Controllers
         {
             Random rnd = new Random();
 
-            var query = (from n in _context.WishList
-                         join c in _context.Usuario on n.usuario.id equals c.id
-                         orderby rnd.Next()
-                         //where n.id == id
+            return (from n in _context.WishList
+                    join c in _context.Usuario on n.usuario.id equals c.id
+                    orderby rnd.Next()
 
-                         select new
-                         {
-                             n.id,
-                             n.tituloProduto,
-                             n.descProduto,
-                             n.comprouOuGanhouItem,
-                             c.nome,
-                             c.email
-                         });
+                    select new
+                    {
+                        n.id,
+                        n.tituloProduto,
+                        n.descProduto,
+                        n.comprouOuGanhouItem,
+                        c.nome,
+                        c.email
+                    }).FirstOrDefault();
+        }
 
-            return query.First();
+        /// <summary>
+        /// Faz o upload de uma imagem para o item correspondente
+        /// </summary>
+        /// <param name="arquivo">Imagem</param>
+        /// <param name="id">ID do item</param>
+        /// <returns></returns>
+        [HttpPost("{id}/uploadFotoItem")]
+        public async Task<IActionResult> PostUploadFoto([FromBody] IFormFile arquivo, long id)
+        {
+            try
+            {
+                string ext = Path.GetExtension(arquivo.FileName);
+
+                if (!Directory.Exists(_environment.WebRootPath + "\\imagens\\"))
+                {
+                    Directory.CreateDirectory(_environment.WebRootPath + "\\imagens\\");
+                }
+
+                using (FileStream filestream = System.IO.File.Create(_environment.WebRootPath + "\\imagens\\" + arquivo.FileName))
+                {
+                    await arquivo.CopyToAsync(filestream);
+
+                    filestream.Flush();
+                }
+
+                return StatusCode(200);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+
         }
     }
 }
