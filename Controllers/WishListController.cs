@@ -1,4 +1,6 @@
 ﻿using dockerapi.Models;
+using dockerapi.Repository;
+using dockerapi.Service;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,36 +19,26 @@ namespace dockerapi.Controllers
     [ApiController]
     public class WishListController : ControllerBase
     {
-        private readonly ApiDbContext _context;
 
-        private static IHostingEnvironment _environment;
+        private readonly WishListRepository wishListRepository;
+        private static IHostingEnvironment environment;
 
-        public WishListController(ApiDbContext context, IHostingEnvironment environment)
+        //private WishListService wishListService;
+
+        public WishListController(WishListRepository _wishListRepository, IHostingEnvironment _environment)
         {
-            _context = context;
-            _environment = environment;
+            wishListRepository = _wishListRepository;
+            environment = _environment;
         }
 
         /// <summary>
-        /// 
+        /// Retorna todos as wishLists cadastradas
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IQueryable Get()
+        public IEnumerable<WishList> Get()
         {
-            return (from n in _context.WishList
-                    join c in _context.Usuario on n.usuario.id equals c.id
-
-                    select new
-                    {
-                        n.id,
-                        n.tituloProduto,
-                        n.descProduto,
-                        n.comprouOuGanhouItem,
-                        c.nome,
-                        c.email
-                    });
-
+            return wishListRepository.GetAll();
         }
 
         /// <summary>
@@ -55,22 +47,19 @@ namespace dockerapi.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public IQueryable GetById(long id)
+        public WishList GetById(long id)
         {
-            return (from n in _context.WishList
-                    join c in _context.Usuario on n.usuario.id equals c.id
-                    where n.id == id
+            return wishListRepository.GetById(id);
+        }
 
-                    select new
-                    {
-                        n.id,
-                        n.tituloProduto,
-                        n.descProduto,
-                        n.comprouOuGanhouItem,
-                        c.nome,
-                        c.email
-                    });
-
+        /// <summary>
+        /// Retorna um item de randomicamente
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("random")]
+        public WishList GetRadom()
+        {
+            return wishListRepository.GetRandom();
         }
 
         /// <summary>
@@ -79,26 +68,27 @@ namespace dockerapi.Controllers
         /// <param name="wishlist">WishList</param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] WishList wishlist)
+        public IActionResult Post([FromBody] WishList wishlist)
         {
+            Response retorno = new Response();
+
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest();
-                }
+                var lista = wishListRepository.Save(wishlist);
 
-                Usuario user = _context.Usuario.Where(x => x.id == wishlist.usuario.id).First();
-                wishlist.usuario = user;
-                _context.WishList.Add(wishlist);
-                await _context.SaveChangesAsync();
+                retorno.status = 200;
+                retorno.mensagem = "Lista adicionada com sucesso";
+                retorno.objeto = lista;
 
-                return CreatedAtAction(nameof(GetById), new { id = wishlist.id }, wishlist);
-
+                return StatusCode(200, retorno);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500);
+                retorno.status = 500;
+                retorno.mensagem = "Não foi possível realizar operação: " + ex.Message; ;
+                retorno.objeto = null;
+
+                return StatusCode(500, retorno);
             }
         }
 
@@ -107,79 +97,69 @@ namespace dockerapi.Controllers
         /// </summary>
         /// <param name="id">ID da wishList</param>
         /// <returns></returns>
-        [HttpPost("{id}")]
-        public async Task<IActionResult> PostGanhouItemWishList(long id)
+        [HttpPost("{id}/itemGanhoOuAdquirido")]
+        public IActionResult PostGanhouItemWishList(long id)
         {
-            WishList lista = _context.WishList.Where(y => y.id == id).First();
+            Response retorno = new Response();
 
-            if (lista == null)
-            {
-                return StatusCode(400);
-            }
-
-            lista.comprouOuGanhouItem = true;
-            _context.Entry(lista).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return StatusCode(200);
-        }
-
-        /// <summary>
-        /// Retorna um item de randomicamente
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("random")]
-        public object GetRadom()
-        {
-            Random rnd = new Random();
-
-            return (from n in _context.WishList
-                    join c in _context.Usuario on n.usuario.id equals c.id
-                    orderby rnd.Next()
-
-                    select new
-                    {
-                        n.id,
-                        n.tituloProduto,
-                        n.descProduto,
-                        n.comprouOuGanhouItem,
-                        c.nome,
-                        c.email
-                    }).FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Faz o upload de uma imagem para o item correspondente
-        /// </summary>
-        /// <param name="arquivo">Imagem</param>
-        /// <param name="id">ID do item</param>
-        /// <returns></returns>
-        [HttpPost("{id}/uploadFotoItem")]
-        public async Task<IActionResult> PostUploadFoto([FromBody] IFormFile arquivo, long id)
-        {
             try
             {
-                string ext = Path.GetExtension(arquivo.FileName);
+                var lista = wishListRepository.marcouItemComoGanho(id);
 
-                if (!Directory.Exists(_environment.WebRootPath + "\\imagens\\"))
+                if (lista == null)
                 {
-                    Directory.CreateDirectory(_environment.WebRootPath + "\\imagens\\");
-                }
+                    retorno.status = 500;
+                    retorno.mensagem = "Lista já foi informada como ganha/adquirida.";
+                    retorno.objeto = null;
 
-                using (FileStream filestream = System.IO.File.Create(_environment.WebRootPath + "\\imagens\\" + arquivo.FileName))
+                    return StatusCode(500, retorno);
+                }
+                else
+                {
+                    retorno.status = 200;
+                    retorno.mensagem = "Lista marcada como ganha/adquirida";
+                    retorno.objeto = lista;
+
+                    return StatusCode(200, retorno);
+                }
+            }
+            catch (Exception ex)
+            {
+                retorno.status = 500;
+                retorno.mensagem = "Não foi possível realizar operação: " + ex.Message; ;
+                retorno.objeto = null;
+
+                return StatusCode(500, retorno);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost("upload")]
+        public async Task<string> UploadImagem()
+        {
+            //TODO: TERMINAR!
+            var arquivo = Request.Form.Files.FirstOrDefault();
+
+            try
+            {
+                if (!Directory.Exists(environment.WebRootPath + "\\imagens\\"))
+                {
+                    Directory.CreateDirectory(environment.WebRootPath + "\\imagens\\");
+                }
+                using (FileStream filestream = System.IO.File.Create(environment.WebRootPath + "\\imagens\\" + arquivo.FileName))
                 {
                     await arquivo.CopyToAsync(filestream);
-
                     filestream.Flush();
+                    return "\\imagens\\" + arquivo.FileName;
                 }
-
-                return StatusCode(200);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500);
+                return ex.ToString();
             }
-
         }
     }
 }

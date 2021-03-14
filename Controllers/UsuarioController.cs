@@ -1,4 +1,5 @@
 ﻿using dockerapi.Models;
+using dockerapi.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -12,11 +13,13 @@ namespace dockerapi.Controllers
     [ApiController]
     public class UsuarioController : ControllerBase
     {
-        private readonly ApiDbContext _context;
+        private readonly UsuarioRespository usuarioRespository;
 
-        public UsuarioController(ApiDbContext context)
+        //TODO: DEIXAR O ENDPOINT DE /POST Usuario igual ao de WishList.
+
+        public UsuarioController(UsuarioRespository _usuarioRespository, ApiDbContext context)
         {
-            _context = context;
+            usuarioRespository = _usuarioRespository;
         }
 
         /// <summary>
@@ -24,15 +27,9 @@ namespace dockerapi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IQueryable Get()
+        public IEnumerable<Usuario> Get()
         {
-            return (from u in _context.Usuario
-                    select new
-                    {
-                        u.id,
-                        u.nome,
-                        u.email
-                    });
+            return usuarioRespository.GetAll(); ;
         }
 
         /// <summary>
@@ -41,16 +38,9 @@ namespace dockerapi.Controllers
         /// <param name="id">ID do usuário</param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public IQueryable GetById(long id)
+        public Usuario GetById(long id)
         {
-            return (from u in _context.Usuario
-                    where u.id == id
-                    select new
-                    {
-                        u.id,
-                        u.nome,
-                        u.email
-                    });
+            return usuarioRespository.GetById(id);
         }
 
         /// <summary>
@@ -59,26 +49,16 @@ namespace dockerapi.Controllers
         /// <param name="usuario">Informações do usuário</param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Usuario usuario)
+        public Usuario Post([FromBody] Usuario usuario)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest();
-                }
-
-                _context.Usuario.Add(usuario);
-
-                await _context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetById), new { id = usuario.id }, usuario);
+                return usuarioRespository.Criar(usuario);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500);
+                throw ex;
             }
-
         }
     }
 }

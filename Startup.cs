@@ -2,14 +2,16 @@
 using System.IO;
 using System.Reflection;
 using dockerapi.Models;
+using dockerapi.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Swashbuckle.AspNetCore.Swagger;
-
+using IHostingEnvironment = Microsoft.AspNetCore.Hosting.IHostingEnvironment;
 
 namespace dockerapi
 {
@@ -27,6 +29,11 @@ namespace dockerapi
         public void ConfigureServices(IServiceCollection services)
         {
             var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+            
+            //TODO REPOSITÓRIO DEVE SER ADICIONADO AQUI
+            services.AddSingleton<UsuarioRespository>();
+            services.AddSingleton<WishListRepository>();
+
             services.AddDbContext<ApiDbContext>(options =>
                 options.UseNpgsql(
                     connectionString
