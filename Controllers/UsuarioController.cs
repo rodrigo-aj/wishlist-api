@@ -15,8 +15,6 @@ namespace dockerapi.Controllers
     {
         private readonly UsuarioRespository usuarioRespository;
 
-        //TODO: DEIXAR O ENDPOINT DE /POST Usuario igual ao de WishList.
-
         public UsuarioController(UsuarioRespository _usuarioRespository, ApiDbContext context)
         {
             usuarioRespository = _usuarioRespository;
@@ -49,15 +47,27 @@ namespace dockerapi.Controllers
         /// <param name="usuario">Informações do usuário</param>
         /// <returns></returns>
         [HttpPost]
-        public Usuario Post([FromBody] Usuario usuario)
+        public IActionResult Post([FromBody] Usuario usuario)
         {
+            Response retorno = new Response();
+
             try
             {
-                return usuarioRespository.Criar(usuario);
+                var user = usuarioRespository.Save(usuario);
+
+                retorno.status = 200;
+                retorno.mensagem = "Usuario criado com sucesso!";
+                retorno.objeto = user;
+
+                return StatusCode(200, retorno);
             }
             catch (Exception ex)
             {
-                throw ex;
+                retorno.status = 500;
+                retorno.mensagem = "Não foi possível realizar operação: " + ex.Message; ;
+                retorno.objeto = null;
+
+                return StatusCode(500, retorno);
             }
         }
     }

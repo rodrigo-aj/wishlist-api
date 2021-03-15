@@ -18,7 +18,6 @@ namespace dockerapi.Maps
             //entityBuilder.Property(x => x.id).HasColumnName("id");
             //entityBuilder.Property(x => x.nome).HasColumnName("nome");
             //entityBuilder.Property(x => x.email).HasColumnName("email");
-            //entityBuilder.Property(x => x.senha).HasColumnName("senha");
         }
     }
 }

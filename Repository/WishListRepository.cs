@@ -33,7 +33,17 @@ namespace dockerapi.Repository
 
         public WishList GetById(long id)
         {
-            var lista = context.WishList.First(w => w.id == id);
+            var lista = (from n in context.WishList
+                         join c in context.Usuario on n.usuario.id equals c.id
+                         where n.id == id
+                         select new WishList
+                         {
+                             id = n.id,
+                             tituloProduto = n.tituloProduto,
+                             descProduto = n.descProduto,
+                             comprouOuGanhouItem = n.comprouOuGanhouItem,
+                             usuario = n.usuario
+                         }).AsNoTracking().FirstOrDefault();
 
             context.Entry(lista).CurrentValues.SetValues(lista);
 
@@ -42,10 +52,18 @@ namespace dockerapi.Repository
 
         public WishList GetRandom()
         {
-            return (from u in context.WishList
-                    join c in context.Usuario on u.usuario.id equals c.id
+            return (from n in context.WishList
+                    join c in context.Usuario on n.usuario.id equals c.id
                     orderby new Random().Next()
-                    select u).First();
+
+                    select new WishList
+                    {
+                        id = n.id,
+                        tituloProduto = n.tituloProduto,
+                        descProduto = n.descProduto,
+                        comprouOuGanhouItem = n.comprouOuGanhouItem,
+                        usuario = n.usuario
+                    }).FirstOrDefault();
         }
 
         public WishList Save(WishList wishList)
@@ -67,10 +85,16 @@ namespace dockerapi.Repository
             }
 
             lista.comprouOuGanhouItem = true;
-            context.Entry(lista).State = EntityState.Modified;
-            context.SaveChanges();
+
+            this.alterarRegistro(lista);
 
             return lista;
+        }
+
+        public void alterarRegistro(WishList lista)
+        {
+            context.Entry(lista).State = EntityState.Modified;
+            context.SaveChanges();
         }
     }
 }

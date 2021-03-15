@@ -13,8 +13,5 @@ namespace dockerapi.Models
         public string nome { get; set; }
 
         public string email { get; set; }
-
-        [JsonIgnore]
-        public string senha { get; set; }
     }
 }

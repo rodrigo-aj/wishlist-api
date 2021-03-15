@@ -23,8 +23,6 @@ namespace dockerapi.Controllers
         private readonly WishListRepository wishListRepository;
         private static IHostingEnvironment environment;
 
-        //private WishListService wishListService;
-
         public WishListController(WishListRepository _wishListRepository, IHostingEnvironment _environment)
         {
             wishListRepository = _wishListRepository;
@@ -136,29 +134,74 @@ namespace dockerapi.Controllers
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="id"></param>
         /// <returns></returns>
-        [HttpPost("upload")]
-        public async Task<string> UploadImagem()
+        [HttpPost("{id}/uploadImagem")]
+        public IActionResult UploadImagem(long id)
         {
-            //TODO: TERMINAR!
-            var arquivo = Request.Form.Files.FirstOrDefault();
+            WishListService wishListService = new WishListService(wishListRepository, environment);
+            string[] tiposArquivosPermitidos = { ".jpeg", ".png", ".jpg", ".bmp", ".tif", ".tiff" };
+
+            var arquivo = Request.Form.Files;
+
+            Response retorno = new Response();
 
             try
             {
-                if (!Directory.Exists(environment.WebRootPath + "\\imagens\\"))
+
+                if (arquivo.Count() > 1)
                 {
-                    Directory.CreateDirectory(environment.WebRootPath + "\\imagens\\");
+                    retorno.status = 500;
+                    retorno.mensagem = "Só é possível adicionar uma foto";
+                    retorno.objeto = null;
+
+                    return StatusCode(500, retorno);
                 }
-                using (FileStream filestream = System.IO.File.Create(environment.WebRootPath + "\\imagens\\" + arquivo.FileName))
+
+                if (arquivo.Count() == 0)
                 {
-                    await arquivo.CopyToAsync(filestream);
-                    filestream.Flush();
-                    return "\\imagens\\" + arquivo.FileName;
+                    retorno.status = 500;
+                    retorno.mensagem = "É necessário adicionar uma foto para continuar";
+                    retorno.objeto = null;
+
+                    return StatusCode(500, retorno);
                 }
+
+                string extensaoArquivo = System.IO.Path.GetExtension(arquivo.FirstOrDefault().FileName);
+
+                if (!tiposArquivosPermitidos.Contains(extensaoArquivo))
+                {
+                    retorno.status = 500;
+                    retorno.mensagem = "Formato " + extensaoArquivo + " não permitido. Os formtados permitidos são: png, jpeg, jpg, bmp, tif, tiff!";
+                    retorno.objeto = null;
+
+                    return StatusCode(500, retorno);
+                }
+
+                var upload = wishListService.uploadImagem(arquivo.FirstOrDefault(), id);
+
+                if (upload == null)
+                {
+                    retorno.status = 500;
+                    retorno.mensagem = "Não foi possível realizar operação!";
+                    retorno.objeto = null;
+
+                    return StatusCode(500, retorno);
+                }
+
+                retorno.status = 200;
+                retorno.mensagem = "Upload realizado com sucesso.";
+                retorno.objeto = upload.objeto; ;
+
+                return StatusCode(200, retorno);
             }
             catch (Exception ex)
             {
-                return ex.ToString();
+                retorno.status = 500;
+                retorno.mensagem = "Não foi possível realizar operação: " + ex.Message; ;
+                retorno.objeto = null;
+
+                return StatusCode(500, retorno);
             }
         }
     }

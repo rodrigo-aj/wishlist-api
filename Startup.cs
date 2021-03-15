@@ -29,16 +29,18 @@ namespace dockerapi
         public void ConfigureServices(IServiceCollection services)
         {
             var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
-            
-            //TODO REPOSITÓRIO DEVE SER ADICIONADO AQUI
-            services.AddSingleton<UsuarioRespository>();
-            services.AddSingleton<WishListRepository>();
+
+            //REPOSITÓRIO DEVE SER ADICIONADO AQUI
+            //NÃO USAR AddSingleton, pois dessa forma o DBContex será compartilhado;
+            //https://stackoverflow.com/questions/48202403/instance-of-entity-type-cannot-be-tracked-because-another-instance-with-same-key
+            services.AddScoped<UsuarioRespository>();
+            services.AddScoped<WishListRepository>();
 
             services.AddDbContext<ApiDbContext>(options =>
-                options.UseNpgsql(
-                    connectionString
-                )
-            );
+    options.UseNpgsql(
+        connectionString
+    )
+);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest);
 

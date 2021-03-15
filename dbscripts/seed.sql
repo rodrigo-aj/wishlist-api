@@ -5,7 +5,6 @@ CREATE TABLE usuario
 (
     id serial PRIMARY KEY,
     email  VARCHAR (100)  NOT NULL,
-    senha VARCHAR (100)  NOT NULL,
     nome  VARCHAR (100)  NOT NULL
 );
 
@@ -27,5 +26,5 @@ CREATE TABLE wishlist
 ALTER TABLE "usuario" OWNER TO wishlistuser;
 ALTER TABLE "wishList" OWNER TO wishlistuser;
 
-Insert into usuario(email, senha, nome) values( 'guest','guest', 'guest');
+Insert into usuario(email, nome) values( 'guest', 'guest');
 Insert into wishList(id_usuario, titulo_produto, desc_produto) values( 1, 'titulo-produto', 'descrição-produto');

@@ -32,7 +32,7 @@ namespace dockerapi.Repository
                     select u).First();
         }
 
-        public Usuario Criar(Usuario usuario)
+        public Usuario Save(Usuario usuario)
         {
             context.Usuario.Add(usuario);
 
