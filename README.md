@@ -9,7 +9,7 @@ API para gerir uma WishList (Lista de Desejos).
 Os dois primeiros rodam dentro de um contêiner.
 
 ## Pré-requisitos
-1. [Docker] ttps://www.docker.com/)
+1. [Docker] (https://www.docker.com/)
 
 ## Passo-a-passo
 1. `git clone https://github.com/rodrigo-aj/wishlist-api.git`
