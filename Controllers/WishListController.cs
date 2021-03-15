@@ -132,9 +132,9 @@ namespace dockerapi.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Faz o upload de uma imagem para wishList
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">ID da wishList</param>
         /// <returns></returns>
         [HttpPost("{id}/uploadImagem")]
         public IActionResult UploadImagem(long id)
